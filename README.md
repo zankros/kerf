@@ -1,7 +1,7 @@
 # kerf
 
 [![release](https://img.shields.io/github/v/release/zankros/kerf?label=release)](https://github.com/zankros/kerf/releases)
-[![license](https://img.shields.io/badge/license-MIT-111111)](LICENSE)
+[![license](https://img.shields.io/badge/license-GPL--3.0-111111)](LICENSE)
 [![language](https://img.shields.io/badge/language-guile%20scheme-111111)](https://www.gnu.org/software/guile/)
 [![platform](https://img.shields.io/badge/platform-linux-111111)](#requirements)
 
@@ -252,4 +252,4 @@ Makefile          install/uninstall
 
 ## license
 
-MIT. see [LICENSE](LICENSE).
+GPL-3.0. see [LICENSE](LICENSE).
