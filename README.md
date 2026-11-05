@@ -182,6 +182,9 @@ from models such as qwen. supported text forms include:
 
 if a server rejects tools, kerf retries the request without tools.
 
+reasoning models such as qwen3 can spend a while thinking before they answer;
+kerf waits for the final content and ignores reasoning tokens.
+
 ## settings
 
 the `Options` tab edits the config directly:

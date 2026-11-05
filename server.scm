@@ -106,8 +106,8 @@
     (let* ((st (close-pipe p))
            (rev (reverse lines))
            (code (and (pair? rev)
-                      (string->number (car rev))))
-           (body (string-join (if (pair? rev) (cdr rev) '()) "\n")))
+                      (string->number (last rev))))
+           (body (string-join (if (pair? rev) (drop-right rev 1) '()) "\n")))
       (values (or code 0) body (status:exit-val st)))))
 
 (define (model-name x)
