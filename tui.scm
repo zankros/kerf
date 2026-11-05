@@ -39,6 +39,9 @@
 (define IDX-STREAMING 20)
 (define IDX-SERVER-MSG 21)
 (define IDX-FORM-ORIG 22)
+(define IDX-MODELS 23)
+(define IDX-MODEL-SEL 24)
+(define IDX-MODEL-BACK 25)
 
 (define (st-ref st i) (vector-ref st i))
 (define (st-set! st i v) (vector-set! st i v))
@@ -102,7 +105,10 @@
           #f
           #f
           "not tested"
-          ""))
+          ""
+          '()
+          0
+          'start))
 
 (define (append-entry! st role text)
   (st-set! st IDX-TRANSCRIPT
@@ -368,7 +374,7 @@
      (list "server" "Server"
            (if (and (string? active) (not (string-null? active))) active "none")
            'action)
-     (list "model" "Model" (or (config-ref cfg "model") "") 'edit)
+     (list "model" "Model" (or (config-ref cfg "model") "") 'pick)
      (list "base_url" "Base URL" (or (config-ref cfg "base_url") "") 'edit)
      (list "api_key" "API key"
            (let ((k (config-ref cfg "api_key")))
@@ -995,6 +1001,7 @@
     ((chat) (draw-chat st))
     ((form) (draw-form st))
     ((prompt) (draw-prompt st))
+    ((models) (draw-models st))
     (else (draw-start st))))
 
 (define (maybe-draw! st force)
@@ -1052,6 +1059,137 @@
     (st-set! st IDX-MODE 'chat)
     (st-set! st IDX-STATUS "ready")
     (draw! st)))
+
+(define (model-servers cfg)
+  (let ((active (active-server cfg))
+        (servers (server-list cfg)))
+    (cond
+      (active (list active))
+      ((pair? servers) servers)
+      (else
+       (let ((base (config-ref cfg "base_url")))
+         (if (and (string? base) (not (string-null? base)))
+             (list (catch #t
+                    (lambda () (parse-endpoint base cfg))
+                    (lambda _ #f)))
+             '()))))))
+
+(define (fetch-available-models cfg)
+  (let ((models '()))
+    (for-each
+     (lambda (server)
+       (when server
+         (catch #t
+           (lambda ()
+             (let-values (((ok msg ms) (fetch-models cfg server)))
+               (when ok
+                 (set! models (append models (if (list? ms) ms '()))))))
+           (lambda _ #f))))
+     (model-servers cfg))
+    (delete-duplicates models string=?)))
+
+(define (open-model-picker! st back)
+  (let* ((cfg (st-ref st IDX-CFG))
+         (models (fetch-available-models cfg)))
+    (cond
+      ((null? models)
+       (st-set! st IDX-STATUS "no models found")
+       (if (eq? back 'session)
+           (start-chat! st)
+           (begin
+             (st-set! st IDX-MODE 'start)
+             (st-set! st IDX-TAB 2)
+             (draw! st))))
+      ((= (length models) 1)
+       (config-set! cfg "model" (car models))
+       (let ((s (active-server cfg)))
+         (when s
+           (add-server! cfg (set-server-field s "model" (car models)))))
+       (save-config cfg)
+       (st-set! st IDX-STATUS (string-append "model: " (car models)))
+       (if (eq? back 'session)
+           (start-chat! st)
+           (begin
+             (st-set! st IDX-MODE 'start)
+             (st-set! st IDX-TAB 2)
+             (draw! st))))
+      (else
+       (st-set! st IDX-MODELS models)
+       (st-set! st IDX-MODEL-SEL 0)
+       (st-set! st IDX-MODEL-BACK back)
+       (st-set! st IDX-MODE 'models)
+       (st-set! st IDX-STATUS "choose a model")
+       (draw! st)))))
+
+(define (draw-models st)
+  (let-values (((rows cols) (term-size)))
+    (let* ((width (max 20 cols))
+           (height (max 10 rows))
+           (cfg (st-ref st IDX-CFG))
+           (theme (or (config-ref cfg "theme") "kerf"))
+           (models (st-ref st IDX-MODELS))
+           (sel (st-ref st IDX-MODEL-SEL))
+           (h (max 1 (- height 4))))
+      (display "\x1b[H")
+      (display (header-line theme "▰ kerf 0.2" "models" width))
+      (display "\r\n")
+      (print-styled-line theme 'heading "  choose a model" width)
+      (display "\r\n")
+      (print-styled-line theme 'dim "  up/down select · enter use · esc cancel" width)
+      (display "\r\n")
+      (let loop ((ms models) (i 0))
+        (unless (null? ms)
+          (let* ((m (car ms))
+                 (style (if (= i sel) 'selected 'text))
+                 (line (string-append "  " (if (= i sel) "▸ " "  ") m)))
+            (print-styled-line theme style line width)
+            (display "\r\n")
+            (loop (cdr ms) (+ i 1)))))
+      (do ((i (length models) (+ i 1))) ((>= i h))
+        (print-styled-line theme 'text "" width)
+        (display "\r\n"))
+      (display (footer-line theme "enter use   esc cancel" width))
+      (display "\x1b[?25l")
+      (force-output))))
+
+(define (handle-models-key! st k)
+  (let* ((models (st-ref st IDX-MODELS))
+         (sel (st-ref st IDX-MODEL-SEL))
+         (count (length models)))
+    (cond
+      ((key-str? k "[A")
+       (when (> sel 0)
+         (st-set! st IDX-MODEL-SEL (- sel 1))
+         (draw! st)))
+      ((key-str? k "[B")
+       (when (< sel (- count 1))
+         (st-set! st IDX-MODEL-SEL (+ sel 1))
+         (draw! st)))
+      ((and (char? k) (or (char=? k #\return) (char=? k #\newline)))
+       (when (pair? models)
+         (let* ((model (list-ref models sel))
+                (cfg (st-ref st IDX-CFG))
+                (back (st-ref st IDX-MODEL-BACK)))
+           (config-set! cfg "model" model)
+           (let ((s (active-server cfg)))
+             (when s
+               (add-server! cfg (set-server-field s "model" model))))
+           (save-config cfg)
+           (st-set! st IDX-STATUS (string-append "model: " model))
+           (if (eq? back 'session)
+               (start-chat! st)
+               (begin
+                 (st-set! st IDX-MODE 'start)
+                 (st-set! st IDX-TAB 2)
+                 (draw! st))))))
+      ((eq? k 'esc)
+       (let ((back (st-ref st IDX-MODEL-BACK)))
+         (st-set! st IDX-MODE 'start)
+         (st-set! st IDX-TAB (if (eq? back 'session) 0 2))
+         (st-set! st IDX-SEL 0)
+         (st-set! st IDX-STATUS "cancelled")
+         (draw! st)))
+      (else #t))))
 
 (define (selected-server st)
   (let* ((cfg (st-ref st IDX-CFG))
@@ -1319,6 +1457,8 @@
        (st-set! st IDX-SEL 0)
        (st-set! st IDX-STATUS "servers")
        (draw! st))
+      ((pick)
+       (open-model-picker! st 'options))
       ((edit)
        (open-prompt! st (cons 'setting key)))
       ((cycle)
@@ -1691,7 +1831,7 @@
 
 (define (start-action! st)
   (case (st-ref st IDX-TAB)
-    ((0) (start-chat! st))
+    ((0) (open-model-picker! st 'session))
     ((1) (connect-selected! st))
     ((2) (settings-action! st))
     (else #t)))
@@ -1834,6 +1974,7 @@
        ((start) (handle-start-key! st k))
        ((form) (handle-form-key! st k))
        ((prompt) (handle-prompt-key! st k))
+       ((models) (handle-models-key! st k))
        (else #t)))))
 
 (define (read-key)

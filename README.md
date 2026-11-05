@@ -150,6 +150,7 @@ path, model, key environment variable, and an optional api key.
 
 - add, edit, delete, test profiles in the `Servers` tab
 - quick connect with `ctrl-n`
+- model picker fetches available models from connected servers before a session
 - import profiles from a json file with `i`
 - connect a saved profile with `enter`
 
