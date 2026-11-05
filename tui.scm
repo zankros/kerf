@@ -173,6 +173,7 @@
     ((border) (sgr theme "border"))
     ((user) (sgr theme "user"))
     ((tool) (sgr theme "tool"))
+    ((think) (sgr theme "dim"))
     ((error) (string-append (sgr theme "error") "\x1b[1m"))
     ((info) (sgr theme "dim"))
     (else (sgr theme "text"))))
@@ -271,6 +272,7 @@
                    ((user) "▌ ")
                    ((kerf) "▌ ")
                    ((tool) "▪ ")
+                   ((think) "∿ ")
                    ((error) "▌ ")
                    ((info) "· ")
                    (else "  "))))
@@ -663,6 +665,10 @@
      (+ 5 vcur)
      vcur)))
 
+(define (spinner-char)
+  (let ((frames '("|" "/" "-" "\\")))
+    (list-ref frames (modulo (quotient (now-ms) 120) (length frames)))))
+
 (define (draw-chat st)
   (let-values (((rows cols) (term-size)))
     (let* ((width (max 20 cols))
@@ -689,7 +695,10 @@
            (busy (st-ref st IDX-BUSY))
            (streaming (st-ref st IDX-STREAMING))
            (left-status
-            (string-append (if busy "● " "· ") status
+            (string-append (if busy
+                               (string-append (spinner-char) " ")
+                               "· ")
+                           status
                            (if streaming " · streaming" ""))))
       (display "\x1b[H")
       (display (header-line theme "▰ kerf 0.2" right width))
@@ -1810,6 +1819,10 @@
        (st-set! st IDX-STREAMING #f)
        (st-set! st IDX-STATUS "thinking...")
        (st-set! st IDX-SCROLL 0)
+       (set! *reasoning-hook* (lambda (reasoning)
+                                (append-entry! st 'think reasoning)
+                                (st-set! st IDX-SCROLL 0)
+                                (maybe-draw! st #t)))
        (maybe-draw! st #t)
        (catch #t
          (lambda ()
@@ -1826,12 +1839,15 @@
                      (maybe-draw! st #f))
                    (lambda (name result)
                      (st-set! st IDX-STREAMING #f)
-                     (if (string=? name "limit")
-                         (append-entry! st 'error result)
-                         (append-entry! st 'tool
-                                        (string-append name ": "
-                                                       (truncate-str result 700))))
-                     (st-set! st IDX-STATUS "working...")
+                     (if (string-prefix? "using " result)
+                         (st-set! st IDX-STATUS result)
+                         (begin
+                           (if (string=? name "limit")
+                               (append-entry! st 'error result)
+                               (append-entry! st 'tool
+                                              (string-append name ": "
+                                                             (truncate-str result 700))))
+                           (st-set! st IDX-STATUS "working...")))
                      (st-set! st IDX-SCROLL 0)
                      (maybe-draw! st #t))
                    (lambda (desc) (confirm-in-tui st desc))
@@ -1852,6 +1868,7 @@
                         (st-set! st IDX-SCROLL 0)
                         (maybe-draw! st #t)))))))
              (st-set! st IDX-MESSAGES new-messages)
+             (set! *reasoning-hook* #f)
              (st-set! st IDX-STATUS "ready")))
          (lambda (key . args)
            (append-entry! st 'error (error-text key args))

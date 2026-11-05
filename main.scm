@@ -111,7 +111,10 @@
                    (and line
                         (member (string-trim line) '("y" "Y" "yes" "YES"))
                         #t)))))
-         #f)
+         #f
+         (lambda (reasoning)
+           (format (current-error-port) "~%thinking: ~a~%" (truncate-str reasoning 500))
+           (force-output (current-error-port))))
         (newline)
         0)
       (lambda (key . args)

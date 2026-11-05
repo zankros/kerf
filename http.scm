@@ -207,7 +207,7 @@
                   (values "" (list->vector bare))
                   (values content #f))))))))
 
-(define (stream-once cfg messages tools on-text)
+(define (stream-once cfg messages tools on-text on-reasoning)
   (let* ((tmp (string-append "/tmp/kerf-"
                              (number->string (getpid))
                              "-"
@@ -217,6 +217,7 @@
          (timeout (config-ref cfg "timeout"))
          (url (api-url (config-ref cfg "base_url")))
          (content "")
+         (reasoning "")
          (finish #f)
          (raw "")
          (tcs (make-hash-table)))
@@ -253,10 +254,15 @@
                  (delta (or (json-get choice "delta") msg)))
             (when (list? delta)
               (let ((c (json-get delta "content"))
+                    (r (or (json-get delta "reasoning")
+                           (json-get delta "reasoning_content")))
                     (tc (json-get delta "tool_calls")))
                 (when (and (string? c) (not (string-null? c)))
                   (set! content (string-append content c))
                   (on-text c))
+                (when (and (string? r) (not (string-null? r)))
+                  (set! reasoning (string-append reasoning r))
+                  (when on-reasoning (on-reasoning r)))
                 (when (vector? tc)
                   (let loop ((i 0))
                     (when (< i (vector-length tc))
@@ -336,20 +342,23 @@
                      (string-append "curl failed with status "
                                     (number->string
                                      (or (status:exit-val status) 1)))))
-            (values content (toolcalls) finish))))
+            (values content (toolcalls) finish reasoning))))
       (lambda ()
         (when (file-exists? tmp)
           (delete-file tmp))))))
 
-(define (stream-chat cfg messages tools on-text)
+(define (stream-chat cfg messages tools on-text on-reasoning)
   (let* ((mode (or (config-ref cfg "tool_mode") "auto"))
          (use-tools (and tools (not (equal? mode "text"))))
-         (emitted #f))
+         (emitted #f)
+         (reasoning ""))
     (define (emit chunk)
       (set! emitted #t)
       (on-text chunk))
     (define (attempt ts)
-      (stream-once cfg messages ts emit))
+      (let-values (((c tc f r) (stream-once cfg messages ts emit on-reasoning)))
+        (set! reasoning r)
+        (values c tc f)))
     (let-values (((content toolcalls finish)
                   (catch #t
                     (lambda ()
@@ -365,8 +374,8 @@
         (cond
           ((and toolcalls (> (vector-length toolcalls) 0))
            (values (if (string-null? clean) content clean)
-                   toolcalls finish))
+                   toolcalls finish reasoning))
           ((and text-calls (> (vector-length text-calls) 0))
-           (values clean text-calls finish))
+           (values clean text-calls finish reasoning))
           (else
-           (values content #f finish)))))))
+           (values content #f finish reasoning)))))))
