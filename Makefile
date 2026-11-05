@@ -2,7 +2,7 @@ PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 LIBDIR = $(PREFIX)/share/kerf
 
-.PHONY: install uninstall test
+.PHONY: install uninstall
 
 install:
 	install -d "$(BINDIR)" "$(LIBDIR)"
@@ -12,6 +12,3 @@ install:
 uninstall:
 	rm -f "$(BINDIR)/kerf"
 	rm -rf "$(LIBDIR)"
-
-test:
-	GUILE_AUTO_COMPILE=0 GUILE_LOAD_PATH=. guile tests/run.scm

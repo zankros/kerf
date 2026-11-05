@@ -1961,7 +1961,11 @@
 (define (handle-start-key! st k)
   (cond
     ((and (char? k) (char=? k #\tab)) (switch-tab! st 1))
-    ((and (char? k) (char=? k #\q)) 'quit)
+    ((and (char? k) (char=? k #\q))
+ (case (st-ref st IDX-MODE)
+   ((prompt) (prompt-insert! st #\q) (maybe-draw! st #t))
+   ((chat) (prompt-insert! st #\q) (maybe-draw! st #t))
+   (else 'quit)))
     ((key-str? k "[Z") (switch-tab! st -1))
     ((key-str? k "[C") (switch-tab! st 1))
     ((key-str? k "[D") (switch-tab! st -1))

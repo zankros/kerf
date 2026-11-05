@@ -158,6 +158,7 @@
     ((number? v) (number->string v))
     ((vector? v)
      (string-append "[" (string-join (map json-write (vector->list v)) ",") "]"))
+    ((null? v) "[]")
     ((and (list? v) (every pair? v))
      (string-append
       "{"
