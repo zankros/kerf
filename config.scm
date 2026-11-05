@@ -1,6 +1,6 @@
-(define-module (kerf config)
-  #:use-module (kerf json)
-  #:use-module (kerf util)
+(define-module (config)
+  #:use-module (json)
+  #:use-module (util)
   #:export (config-dir config-path default-config load-config save-config
             config-ref config-set!))
 

@@ -1,4 +1,4 @@
-(define-module (kerf tools)
+(define-module (tools)
   #:use-module (ice-9 popen)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 textual-ports)
@@ -6,9 +6,9 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-13)
-  #:use-module (kerf json)
-  #:use-module (kerf util)
-  #:use-module (kerf config)
+  #:use-module (json)
+  #:use-module (util)
+  #:use-module (config)
   #:export (tool-definitions execute-tool reset-tools!))
 
 (define (prop type desc)

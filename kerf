@@ -1,11 +1,15 @@
 #!/bin/sh
 HERE=$(dirname "$(readlink -f "$0")")
 LIB=""
-for CAND in "$HERE/lib" "$HERE/../share/kerf/lib" "$HERE/../lib/kerf" \
-            "/usr/local/share/kerf/lib" "/usr/share/kerf/lib" \
+for CAND in "$HERE" "$HERE/lib" "$HERE/../share/kerf" "$HERE/../share/kerf/lib" \
+            "/usr/local/share/kerf" "/usr/local/share/kerf/lib" "/usr/share/kerf" "/usr/share/kerf/lib" \
             "$HOME/.local/share/kerf/lib"; do
-  if [ -f "$CAND/kerf/entry.scm" ]; then
+  if [ -f "$CAND/entry.scm" ]; then
     LIB=$CAND
+    break
+  fi
+  if [ -f "$CAND/kerf/entry.scm" ]; then
+    LIB=$CAND/kerf
     break
   fi
 done
@@ -13,4 +17,4 @@ if [ -z "$LIB" ]; then
   echo "kerf: cannot find scheme modules" >&2
   exit 1
 fi
-exec guile --no-auto-compile -L "$LIB" -s "$LIB/kerf/entry.scm" "$@"
+exec guile --no-auto-compile -L "$LIB" -s "$LIB/entry.scm" "$@"

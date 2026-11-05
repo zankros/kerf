@@ -1,12 +1,12 @@
-(define-module (kerf server)
+(define-module (server)
   #:use-module (ice-9 popen)
   #:use-module (ice-9 rdelim)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-11)
   #:use-module (srfi srfi-13)
-  #:use-module (kerf json)
-  #:use-module (kerf util)
-  #:use-module (kerf config)
+  #:use-module (json)
+  #:use-module (util)
+  #:use-module (config)
   #:export (server-list set-server-list! find-server server-name server-label
             server-base-url server-models-url server-key apply-server!
             parse-endpoint quick-connect! fetch-models test-server

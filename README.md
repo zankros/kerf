@@ -245,7 +245,7 @@ project layout:
 
 ```text
 kerf              launcher
-lib/kerf/         scheme modules
+*.scm             scheme modules
 install.sh        curl installer
 Makefile          install/uninstall
 ```

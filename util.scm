@@ -1,4 +1,4 @@
-(define-module (kerf util)
+(define-module (util)
   #:use-module (srfi srfi-13)
   #:use-module (ice-9 string-fun)
   #:use-module (ice-9 textual-ports)

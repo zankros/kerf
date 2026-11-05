@@ -1,4 +1,4 @@
-(define-module (kerf json)
+(define-module (json)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-13)
   #:export (json-read-string json-write-string json-get json-get*))

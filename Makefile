@@ -1,14 +1,14 @@
 PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
-LIBDIR = $(PREFIX)/share/kerf/lib
+LIBDIR = $(PREFIX)/share/kerf
 
 .PHONY: install uninstall
 
 install:
-	install -d "$(BINDIR)" "$(LIBDIR)/kerf"
+	install -d "$(BINDIR)" "$(LIBDIR)"
 	install -m 755 kerf "$(BINDIR)/kerf"
-	cp -a lib/kerf/. "$(LIBDIR)/kerf/"
+	cp -a *.scm "$(LIBDIR)/"
 
 uninstall:
 	rm -f "$(BINDIR)/kerf"
-	rm -rf "$(LIBDIR)/kerf"
+	rm -rf "$(LIBDIR)"
