@@ -14,6 +14,7 @@
   #:use-module (server)
   #:use-module (tools)
   #:use-module (agent)
+  #:use-module (http)
   #:export (run-tui))
 
 (define IDX-CFG 0)
@@ -2074,6 +2075,13 @@
                (st-set! st IDX-STATUS "cancelled")
                (draw! st)
                #t)
+       ((chat)
+        (if (st-ref st IDX-BUSY)
+            (begin
+              (cancel-request!)
+              (st-set! st IDX-STATUS "cancelling...")
+              #t)
+            'quit))
        (else 'quit)))
     ((and (char? k) (char=? k #\x04))
      (if (eq? (st-ref st IDX-MODE) 'chat) #t 'quit))

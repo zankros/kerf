@@ -7,7 +7,10 @@
   #:use-module (json)
   #:use-module (util)
   #:use-module (config)
-  #:export (stream-chat extract-text-toolcalls))
+  #:export (stream-chat extract-text-toolcalls cancel-request! *cancel*))
+
+(define *cancel* #f)
+(define (cancel-request!) (set! *cancel* #t))
 
 (define (api-url base)
   (let ((b (strip-trailing-slash base)))
@@ -325,6 +328,7 @@
           (let loop ()
             (let ((line (read-line p)))
               (unless (eof-object? line)
+                (when *cancel* (throw 'kerf-error "cancelled"))
                 (handle-line line)
                 (loop))))
           (let ((status (close-pipe p)))
@@ -352,6 +356,7 @@
          (use-tools (and tools (not (equal? mode "text"))))
          (emitted #f)
          (reasoning ""))
+    (set! *cancel* #f)
     (define (emit chunk)
       (set! emitted #t)
       (on-text chunk))
