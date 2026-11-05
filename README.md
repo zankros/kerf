@@ -67,6 +67,23 @@ still work.
 writes, edits, patches, and shell commands ask for confirmation unless
 `auto_approve` is set in the config.
 
+## connect
+
+kerf can use an api key from three places:
+
+- `KERF_API_KEY` or `OPENAI_API_KEY` in the environment
+- the `api_key` field in `~/.config/kerf/config.json`, editable from `Options`
+- the `key` field of a saved server profile
+
+connect to a server:
+
+- `ctrl-n` and enter `host:port` or a full url
+- `Servers` tab, then `enter` on a saved profile
+- `/connect HOST:PORT` in chat
+
+quick connect and import fetch `/models` when available. local servers on
+`127.0.0.1` or `localhost` do not require an api key.
+
 ## servers
 
 saved profiles live in the config file. each profile stores host, port, scheme,
@@ -96,7 +113,7 @@ if a server rejects tools, kerf retries the request without tools.
 
 the `Options` tab edits the config directly:
 
-- model, base url, workdir
+- model, base url, api key, workdir
 - tool mode: `auto`, `native`, `text`
 - theme: `kerf`, `mono`, `amber`
 - temperature, max steps, timeout
